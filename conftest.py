@@ -9,7 +9,7 @@ from pages.login_page import LoginPage
 
 base_url = "http://localhost:3000"
 test_email = "qatest@tallerweb.local"
-test_password = "`QaTest123!`"
+test_password = "QaTest123!"
 
 @pytest.fixture
 def driver():
