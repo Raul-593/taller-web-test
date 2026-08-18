@@ -1,0 +1,116 @@
+# Qué hace, en orden:
+# 1. Descarga el código de taller-web-test (este repo, con las pruebas)
+# 2. Descarga el código de taller-web (la app, que ya trae supabase/migrations y supabase/seed.sql)
+# 3. Instala Node.js y las dependencias de la app
+# 4. Instala el CLI de Supabase (Docker ya viene preinstalado en los runners de GitHub)
+# 5. Levanta Supabase local -> aplica migraciones + seed.sql automáticamente
+# 6. Captura la URL y la llave (publishable/anon) generadas, y las guarda como variables de entorno
+# 7. Arranca la app (npm run dev) usando esas variables
+# 8. Instala Python, Chrome, y corre pytest
+# 9. Si algo falla, sube capturas/logs/resultados como "artifact" para revisarlos
+
+name: Pruebas Selenium
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  selenium-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # 1. Traer el código de las pruebas
+      - name: Checkout taller-web-test
+        uses: actions/checkout@v4
+        with:
+          path: taller-web-test
+
+      # 2. Traer el código de la app
+      - name: Checkout taller-web (la app)
+        uses: actions/checkout@v4
+        with:
+          repository: Raul-593/taller-web
+          path: taller-web
+
+      # 3. Instalar Node.js 
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: taller-web/package-lock.json
+
+      - name: Instalar dependencias de la app
+        working-directory: taller-web
+        run: npm install
+
+      # 4. Levantar Supabase local 
+      - name: Levantar Supabase local (aplica migrations + seed.sql automáticamente)
+        working-directory: taller-web
+        run: npx supabase start
+
+      # 5. Capturar URL y llave generadas, y se guardan para el siguiente paso
+      - name: Capturar credenciales de Supabase local
+        working-directory: taller-web
+        run: |
+          npx supabase status -o env > supabase_status.env
+          cat supabase_status.env
+
+          API_URL=$(grep -E '^API_URL=' supabase_status.env | cut -d '=' -f2- | tr -d '"')
+
+          # El CLI puede exponer la llave como ANON_KEY (nombre viejo) o PUBLISHABLE_KEY (nombre nuevo)
+          KEY=$(grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=' supabase_status.env | head -n1 | cut -d '=' -f2- | tr -d '"')
+
+          if [ -z "$API_URL" ] || [ -z "$KEY" ]; then
+            echo "No se pudo extraer API_URL o la llave. Revisa la salida de 'supabase status -o env' arriba."
+            exit 1
+          fi
+
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$KEY" >> "$GITHUB_ENV"
+
+      # 6. Arrancar la app en segundo plano, ya con las variables cargadas
+      - name: Arrancar la app (npm run dev)
+        working-directory: taller-web
+        run: |
+          nohup npm run dev > app.log 2>&1 &
+          echo "Esperando que la app responda en localhost:3000..."
+          npx wait-on http://localhost:3000 --timeout 60000
+
+      # 7. Instalar Python 
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: taller-web-test/requirements.txt
+
+      - name: Instalar dependencias de pruebas
+        working-directory: taller-web-test
+        run: pip install -r requirements.txt
+
+      # 8. Instalar Chrome para Selenium 
+      - name: Instalar Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      # 9. Correr las pruebas
+      - name: Ejecutar pytest
+        working-directory: taller-web-test
+        env:
+          SELENIUM_HEADLESS: "true"
+        run: pytest -v --junitxml=results.xml
+
+      # 10. Guardar evidencia, incluso si algo falló
+      - name: Subir resultados y logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-pruebas
+          path: |
+            taller-web-test/results.xml
+            taller-web/app.log
