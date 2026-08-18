@@ -20,7 +20,7 @@ def driver():
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
     service = Service(ChromeDriverManager().install())
-    d = webdriver.Chrome(service=service)
+    d = webdriver.Chrome(service=service, options=options)
     d.implicitly_wait(5)
     yield d
     d.quit()
