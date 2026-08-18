@@ -128,6 +128,20 @@ CREATE TABLE maintenance_records (
     updated_at    timestamp with time zone NOT NULL DEFAULT now()
 );
 
+create table maintenance_items (
+  "id"             uuid                        not null default extensions.uuid_generate_v4(),
+  "maintenance_id" uuid,
+  "product_id"     uuid,
+  "item_type"      text                        not null,
+  "description"    text,
+  "quantity"       integer                     not null default 1,
+  "unit_price"     numeric                     not null default 0,
+  "total_price"    numeric,
+  "created_at"     timestamp without time zone not null default now(),
+  "updated_at"     timestamp with time zone    not null default now(),
+  constraint "maintenance_items_pkey" primary key (id)
+);
+
 -- ========================================================
 -- DATOS DE PRUEBA
 -- ========================================================
@@ -176,3 +190,8 @@ INSERT INTO purchase_items (id, purchase_id, product_id, quantity, unit_cost, to
 INSERT INTO maintenance_records (id, bicycle_id, sale_id, service_date, delivery_date, description, observation, cost, status) VALUES
     ('99999999-9999-9999-9999-999999999991', '44444444-4444-4444-4444-444444444441', NULL, CURRENT_DATE, CURRENT_DATE + 2, 'Mantenimiento preventivo QA', 'Registro de prueba', 25.00, 'recibido'),
     ('99999999-9999-9999-9999-999999999992', '44444444-4444-4444-4444-444444444442', NULL, CURRENT_DATE - 5, CURRENT_DATE - 1, 'Cambio de llanta QA', 'Registro de prueba entregado', 50.00, 'entregado');
+
+-- Maintenance Items
+INSERT INTO maintenance_items (id, maintenance_id, product_id, item_type, description, quantity, unit_price, total_price) VALUES
+    ('99999999-9999-9999-9999-999999999993', '99999999-9999-9999-9999-999999999991','33333333-3333-3333-3333-333333333331', 'retail', 'Cambio de Cadena QA', '1', 15.00, 15.00),
+    ('99999999-9999-9999-9999-999999999994', '99999999-9999-9999-9999-999999999992','33333333-3333-3333-3333-333333333332', 'retail', 'Cambio de Llantas QA', '2', 50.00, 100.00);
