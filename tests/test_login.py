@@ -5,7 +5,7 @@ base_url = "http://localhost:3000"
 def test_login_exitoso(driver):
     login_page = LoginPage(driver, base_url)
     login_page.load()
-    login_page.login("qatest@tallerweb.local", "`QaTest123!`")
+    login_page.login("qatest@tallerweb.local", "QaTest123!")
 
     assert "dashboard" in driver.current_url or driver.find_elements(
         *login_page.dashboard_market
