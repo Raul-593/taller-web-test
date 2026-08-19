@@ -1,4 +1,5 @@
 # Automated Test - Taller Web
+[![Pruebas Selenium](https://github.com/Raul-593/taller-web-test/actions/workflows/tests.yml/badge.svg)](https://github.com/Raul-593/taller-web-test/actions/workflows/tests.yml)
 
 Selenium + pytest test suite for 593 Cycling Studio CRM, using the Page Object Model pattern. Test run against a local 
 Supabase instance(`supabase start`), never agains production
